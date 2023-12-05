@@ -1,7 +1,11 @@
+use std::collections::{hash_map::RandomState, HashMap};
+
 pub fn get_day(day: &str) -> fn(String) {
     match day {
         "1a" => p1a,
         "1b" => p1b,
+        "2a" => p2a,
+        "2b" => p2b,
         day => panic!("invalid or unimplemented solver: {day:?}"),
     }
 }
@@ -55,5 +59,66 @@ fn p1b(input: String) {
 
         acc + (first * 10 + last) as usize
     });
+    println!("{ans}");
+}
+
+fn p2parse(
+    input: &str,
+) -> impl Iterator<
+    Item = (
+        usize,
+        impl Iterator<Item = impl Iterator<Item = (usize, &str)>>,
+    ),
+> {
+    input.lines().map(|l| {
+        let (game, rounds) = l.split_once(':').unwrap();
+        (
+            game.split_once(' ').unwrap().1.parse::<usize>().unwrap(),
+            rounds.split(';').map(|round| {
+                round.split(',').map(|count_color| {
+                    let (count, color) = count_color.trim().split_once(' ').unwrap();
+                    (count.parse().unwrap(), color)
+                })
+            }),
+        )
+    })
+}
+
+fn p2a(input: String) {
+    let limits =
+        HashMap::<&str, usize, RandomState>::from_iter([("red", 12), ("green", 13), ("blue", 14)]);
+    let ans = p2parse(&input)
+        .filter_map(|(game_id, rounds)| {
+            for round in rounds {
+                for (count, color) in round {
+                    if *limits.get(color).unwrap() < count {
+                        return None;
+                    }
+                }
+            }
+            Some(game_id)
+        })
+        .sum::<usize>();
+    println!("{ans}");
+}
+
+fn p2b(input: String) {
+    let ans = p2parse(&input)
+        .map(|(_, rounds)| {
+            let (r, g, b) = rounds.fold((0, 0, 0), |mut acc, round| {
+                for (count, color) in round {
+                    let target = match color {
+                        "red" => &mut acc.0,
+                        "green" => &mut acc.1,
+                        "blue" => &mut acc.2,
+                        _ => unreachable!("hopefully"),
+                    };
+                    *target = count.max(*target);
+                }
+                acc
+            });
+            r * g * b
+        })
+        .sum::<usize>();
     println!("{ans}");
 }
