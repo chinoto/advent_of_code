@@ -1,4 +1,5 @@
 use std::collections::{hash_map::RandomState, HashMap};
+use std::iter::repeat;
 
 pub fn get_day(day: &str) -> fn(String) {
     match day {
@@ -6,6 +7,8 @@ pub fn get_day(day: &str) -> fn(String) {
         "1b" => p1b,
         "2a" => p2a,
         "2b" => p2b,
+        "3a" => p3a,
+        "3b" => p3b,
         day => panic!("invalid or unimplemented solver: {day:?}"),
     }
 }
@@ -120,5 +123,83 @@ fn p2b(input: String) {
             r * g * b
         })
         .sum::<usize>();
+    println!("{ans}");
+}
+
+fn p3a(input: String) {
+    let grid: Vec<&[u8]> = input.lines().map(|x| x.as_bytes()).collect();
+    let mut num_start = None;
+    let mut ans: usize = 0;
+    for (y, row) in grid.iter().enumerate() {
+        // chain an additional character to each row to avoid manual checking of num after the loop
+        for (x, c) in row.iter().chain(Some(&b'.')).enumerate() {
+            if c.is_ascii_digit() {
+                if num_start.is_none() {
+                    num_start = Some(x)
+                }
+            } else if let Some(start) = num_start {
+                let above_row_iter = { y.checked_sub(1) }
+                    .map(|above| (start.saturating_sub(1)..=x).zip(repeat(above)))
+                    .into_iter()
+                    .flatten();
+                let mut border_iter = above_row_iter
+                    .chain(start.checked_sub(1).map(|left| (left, y)))
+                    .chain(Some((x, y)))
+                    .chain((start.saturating_sub(1)..=x).zip(repeat(y + 1)))
+                    .filter_map(|(x, y)| grid.get(y)?.get(x));
+                if border_iter.any(|&c| !c.is_ascii_digit() && c != b'.') {
+                    ans += row[start..x]
+                        .iter()
+                        .fold(0, |acc, b| acc * 10 + ((b - b'0') as usize));
+                }
+                num_start = None;
+            }
+        }
+    }
+    println!("{ans}");
+}
+
+fn p3b(input: String) {
+    let grid: Vec<&[u8]> = input.lines().map(|x| x.as_bytes()).collect();
+    let mut num_start = None;
+    // create a list of numbers with their bounding boxes to quickly find intersections
+    let mut numbers = Vec::new();
+    for (y, row) in grid.iter().enumerate() {
+        // chain an additional character to each row to avoid manual checking of num after the loop
+        for (x, c) in row.iter().chain(Some(&b'.')).enumerate() {
+            if c.is_ascii_digit() {
+                if num_start.is_none() {
+                    num_start = Some(x)
+                }
+            } else if let Some(start) = num_start {
+                let number = row[start..x]
+                    .iter()
+                    .fold(0, |acc, b| acc * 10 + ((b - b'0') as usize));
+                numbers.push((number, start..=x - 1, y));
+                num_start = None;
+            }
+        }
+    }
+
+    let mut ans: usize = 0;
+    for (y, row) in grid.iter().enumerate() {
+        for (x, &c) in row.iter().enumerate() {
+            if c != b'*' {
+                continue;
+            }
+            let gear_x = x.saturating_sub(1)..=x + 1;
+            let gear_y = y.saturating_sub(1)..=y + 1;
+            let mut iter = numbers.iter().filter_map(|(num, num_x, num_y)| {
+                (gear_y.contains(num_y)
+                    && gear_x.start() <= num_x.end()
+                    && num_x.start() <= gear_x.end())
+                .then_some(num)
+            });
+            if let (Some(a), Some(b)) = (iter.next(), iter.next()) {
+                ans += a * b;
+            }
+            assert_eq!(iter.next(), None);
+        }
+    }
     println!("{ans}");
 }
