@@ -1,6 +1,7 @@
 use std::collections::{hash_map::RandomState, HashMap};
 use std::collections::{HashSet, VecDeque};
 use std::iter::repeat;
+use std::ops::{Range, RangeInclusive};
 
 pub fn get_day(day: &str) -> fn(String) {
     match day {
@@ -12,6 +13,14 @@ pub fn get_day(day: &str) -> fn(String) {
         "3b" => p3b,
         "4a" => p4a,
         "4b" => p4b,
+        "5a" => p5a,
+        "5b" => p5b,
+        "6a" => p6a,
+        "6b" => p6b,
+        "7a" => p7a,
+        "7b" => p7b,
+        "8a" => p8a,
+        "8b" => p8b,
         day => panic!("invalid or unimplemented solver: {day:?}"),
     }
 }
@@ -252,3 +261,94 @@ fn p4b(input: String) {
         .sum::<u32>();
     println!("{}", ans);
 }
+
+fn p5a(input: String) {
+    let mut lines = input.lines();
+    let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
+    let mut seeds = seed_list_slice
+        .split(' ')
+        .map(|seed| seed.parse::<isize>().unwrap())
+        .collect::<Vec<_>>();
+    let mut conversions = Vec::<(Range<isize>, isize)>::new();
+
+    for line in lines {
+        if line.is_empty() {
+        } else if line.contains(':') {
+            for seed in seeds.iter_mut() {
+                for (range, diff) in &conversions {
+                    if range.contains(seed) {
+                        *seed += diff;
+                        break;
+                    }
+                }
+            }
+            conversions.clear();
+        } else {
+            let mut iter = line.split(' ');
+            let [dest, src, range] = [0; 3].map(|_| iter.next().unwrap().parse().unwrap());
+            conversions.push((src..src + range, dest - src));
+        }
+    }
+
+    println!("{}", seeds.iter().min().unwrap());
+}
+
+fn p5b(input: String) {
+    let mut lines = input.lines();
+    let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
+    let mut iter = seed_list_slice
+        .split(' ')
+        .map(|seed| seed.parse::<isize>().unwrap());
+    let mut seeds = Vec::new();
+    let mut new_seeds = Vec::new();
+    while let (Some(start), Some(range)) = (iter.next(), iter.next()) {
+        if range > 0 {
+            seeds.push(start..=start + range - 1);
+        }
+    }
+    let mut conversions = Vec::<(RangeInclusive<isize>, isize)>::new();
+
+    for line in lines {
+        if line.is_empty() {
+        } else if line.contains(':') {
+            while let Some(mut seed) = seeds.pop() {
+                for (range, diff) in &conversions {
+                    if range.start() < seed.end() && seed.start() < range.end() {
+                        if seed.start() < range.start() {
+                            seeds.push(*seed.start()..=*range.start() - 1);
+                            seed = *range.start()..=*seed.end();
+                        }
+                        if range.end() < seed.end() {
+                            seeds.push(*range.end() + 1..=*seed.end());
+                            seed = *seed.start()..=*range.end();
+                        }
+                        seed = seed.start() + diff..=seed.end() + diff;
+                        break;
+                    }
+                }
+                new_seeds.push(seed);
+            }
+
+            println!("{new_seeds:?}");
+            std::mem::swap(&mut seeds, &mut new_seeds);
+            conversions.clear();
+        } else {
+            let mut iter = line.split(' ');
+            let [dest, src, range] = [0; 3].map(|_| iter.next().unwrap().parse().unwrap());
+            if range > 0 {
+                conversions.push((src..=src + range - 1, dest - src));
+            }
+        }
+    }
+
+    println!("{}", seeds.iter().map(|range| range.start()).min().unwrap());
+}
+
+fn p6a(input: String) {}
+fn p6b(input: String) {}
+
+fn p7a(input: String) {}
+fn p7b(input: String) {}
+
+fn p8a(input: String) {}
+fn p8b(input: String) {}
