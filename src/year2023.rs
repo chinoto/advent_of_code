@@ -21,7 +21,41 @@ pub fn get_day(day: &str) -> fn(String) {
         "7b" => p7b,
         "8a" => p8a,
         "8b" => p8b,
-        day => panic!("invalid or unimplemented solver: {day:?}"),
+        "9a" => p9a,
+        "9b" => p9b,
+        "10a" => p10a,
+        "10b" => p10b,
+        "11a" => p11a,
+        "11b" => p11b,
+        "12a" => p12a,
+        "12b" => p12b,
+        "13a" => p13a,
+        "13b" => p13b,
+        "14a" => p14a,
+        "14b" => p14b,
+        "15a" => p15a,
+        "15b" => p15b,
+        "16a" => p16a,
+        "16b" => p16b,
+        "17a" => p17a,
+        "17b" => p17b,
+        "18a" => p18a,
+        "18b" => p18b,
+        "19a" => p19a,
+        "19b" => p19b,
+        "20a" => p20a,
+        "20b" => p20b,
+        "21a" => p21a,
+        "21b" => p21b,
+        "22a" => p22a,
+        "22b" => p22b,
+        "23a" => p23a,
+        "23b" => p23b,
+        "24a" => p24a,
+        "24b" => p24b,
+        "25a" => p25a,
+        "25b" => p25b,
+        day => panic!("invalid solver: {day:?}"),
     }
 }
 
@@ -344,11 +378,62 @@ fn p5b(input: String) {
     println!("{}", seeds.iter().map(|range| range.start()).min().unwrap());
 }
 
-fn p6a(input: String) {}
-fn p6b(input: String) {}
+fn p6a(_input: String) {}
+fn p6b(_input: String) {}
 
-fn p7a(input: String) {}
-fn p7b(input: String) {}
+fn p7a(_input: String) {}
+fn p7b(_input: String) {}
 
-fn p8a(input: String) {}
-fn p8b(input: String) {}
+fn p8a(_input: String) {}
+fn p8b(_input: String) {}
+
+fn p9a(_input: String) {}
+fn p9b(_input: String) {}
+
+fn p10a(_input: String) {}
+fn p10b(_input: String) {}
+
+fn p11a(_input: String) {}
+fn p11b(_input: String) {}
+
+fn p12a(_input: String) {}
+fn p12b(_input: String) {}
+
+fn p13a(_input: String) {}
+fn p13b(_input: String) {}
+
+fn p14a(_input: String) {}
+fn p14b(_input: String) {}
+
+fn p15a(_input: String) {}
+fn p15b(_input: String) {}
+
+fn p16a(_input: String) {}
+fn p16b(_input: String) {}
+
+fn p17a(_input: String) {}
+fn p17b(_input: String) {}
+
+fn p18a(_input: String) {}
+fn p18b(_input: String) {}
+
+fn p19a(_input: String) {}
+fn p19b(_input: String) {}
+
+fn p20a(_input: String) {}
+fn p20b(_input: String) {}
+
+fn p21a(_input: String) {}
+fn p21b(_input: String) {}
+
+fn p22a(_input: String) {}
+fn p22b(_input: String) {}
+
+fn p23a(_input: String) {}
+fn p23b(_input: String) {}
+
+fn p24a(_input: String) {}
+fn p24b(_input: String) {}
+
+fn p25a(_input: String) {}
+fn p25b(_input: String) {}
