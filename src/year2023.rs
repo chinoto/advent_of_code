@@ -1,4 +1,5 @@
 use std::collections::{hash_map::RandomState, HashMap};
+use std::collections::{HashSet, VecDeque};
 use std::iter::repeat;
 
 pub fn get_day(day: &str) -> fn(String) {
@@ -9,6 +10,8 @@ pub fn get_day(day: &str) -> fn(String) {
         "2b" => p2b,
         "3a" => p3a,
         "3b" => p3b,
+        "4a" => p4a,
+        "4b" => p4b,
         day => panic!("invalid or unimplemented solver: {day:?}"),
     }
 }
@@ -202,4 +205,50 @@ fn p3b(input: String) {
         }
     }
     println!("{ans}");
+}
+
+fn p4_matches_iter(input: &str) -> impl Iterator<Item = usize> + '_ {
+    input.lines().map(|l| {
+        let (winners, given) = l.split_once(':').unwrap().1.split_once('|').unwrap();
+        let [winners, given] = [winners, given].map(|list| {
+            list.split(' ')
+                .map(str::trim)
+                .filter(|x| !x.is_empty())
+                .collect::<HashSet<&str>>()
+        });
+        let intersection = winners.intersection(&given);
+        intersection.count()
+    })
+}
+
+fn p4a(input: String) {
+    let ans = p4_matches_iter(&input)
+        .map(|matches| {
+            if matches > 0 {
+                2usize.pow((matches - 1) as u32)
+            } else {
+                0
+            }
+        })
+        .sum::<usize>();
+    println!("{ans}");
+}
+
+fn p4b(input: String) {
+    let mut upcooming_card_counts = VecDeque::new();
+    let ans = p4_matches_iter(&input)
+        .map(|matches| {
+            let cards = upcooming_card_counts.pop_front().unwrap_or(1);
+            if upcooming_card_counts.len() < matches {
+                let diff = matches - upcooming_card_counts.len();
+                upcooming_card_counts.extend((0..diff).map(|_| 1));
+            }
+            upcooming_card_counts
+                .iter_mut()
+                .take(matches)
+                .for_each(|count| *count += cards);
+            cards
+        })
+        .sum::<u32>();
+    println!("{}", ans);
 }
