@@ -398,7 +398,7 @@ fn p6a(input: String) {
 fn p6b(input: String) {
     let mut lines = input.lines();
     let [time, distance] = [0; 2].map(|_| {
-        { lines.next().unwrap().as_bytes().iter() }
+        { lines.next().unwrap().bytes() }
             .filter(|b| b.is_ascii_digit())
             .map(|b| (b - b'0') as usize)
             .fold(0, |acc, n| acc * 10 + n)
