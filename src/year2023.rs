@@ -278,15 +278,15 @@ fn p4a(input: String) {
 }
 
 fn p4b(input: String) {
-    let mut upcooming_card_counts = VecDeque::new();
+    let mut upcoming_card_counts = VecDeque::new();
     let ans = p4_matches_iter(&input)
         .map(|matches| {
-            let cards = upcooming_card_counts.pop_front().unwrap_or(1);
-            if upcooming_card_counts.len() < matches {
-                let diff = matches - upcooming_card_counts.len();
-                upcooming_card_counts.extend((0..diff).map(|_| 1));
+            let cards = upcoming_card_counts.pop_front().unwrap_or(1);
+            if upcoming_card_counts.len() < matches {
+                let diff = matches - upcoming_card_counts.len();
+                upcoming_card_counts.extend((0..diff).map(|_| 1));
             }
-            upcooming_card_counts
+            upcoming_card_counts
                 .iter_mut()
                 .take(matches)
                 .for_each(|count| *count += cards);
