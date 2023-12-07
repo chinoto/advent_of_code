@@ -407,8 +407,71 @@ fn p6b(input: String) {
     println!("{}", time - (first_win - 1) * 2 - 1);
 }
 
-fn p7a(_input: String) {}
-fn p7b(_input: String) {}
+fn p7(input: String, j_rule: bool) {
+    let mut hands = input
+        .lines()
+        .map(|l| {
+            let (hand, bid) = l.split_once(' ').unwrap();
+
+            let hand_values = { hand.bytes() }
+                .map(|b| match b {
+                    b'A' => 14,
+                    b'K' => 13,
+                    b'Q' => 12,
+                    b'J' => 1 + (!j_rule as u8 * 10),
+                    b'T' => 10,
+                    b'0'..=b'9' => b - b'0',
+                    _ => panic!("bad char"),
+                })
+                .collect::<Vec<_>>();
+
+            let mut kinds =
+                { hand_values.iter() }.fold(HashMap::<u8, usize>::new(), |mut acc, &value| {
+                    *acc.entry(value).or_default() += 1;
+                    acc
+                });
+
+            if j_rule && kinds.len() > 1 {
+                if let Some(j) = kinds.remove(&1) {
+                    let target_count = kinds.iter_mut().max_by_key(|(_, count)| **count).unwrap();
+                    *target_count.1 += j;
+                }
+            }
+
+            let mut kinds = kinds.into_values().collect::<Vec<_>>();
+            kinds.sort_unstable();
+            kinds.reverse();
+            let typ = match kinds.as_slice() {
+                [5] => 7,
+                [4, 1] => 6,
+                [3, 2] => 5,
+                [3, 1, 1] => 4,
+                [2, 2, 1] => 3,
+                [2, 1, 1, 1] => 2,
+                [1, 1, 1, 1, 1] => 1,
+                _ => unreachable!(),
+            };
+
+            (typ, hand, bid.parse().unwrap())
+        })
+        .collect::<Vec<_>>();
+
+    hands.sort();
+
+    let ans = { hands.iter().enumerate() }
+        .map(|(i, (_, _, bid))| (i + 1) * bid)
+        .sum::<usize>();
+
+    println!("{ans}");
+}
+
+fn p7a(input: String) {
+    p7(input, false);
+}
+
+fn p7b(input: String) {
+    p7(input, true);
+}
 
 fn p8a(_input: String) {}
 fn p8b(_input: String) {}
