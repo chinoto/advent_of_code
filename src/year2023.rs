@@ -3,7 +3,7 @@ use std::collections::{HashSet, VecDeque};
 use std::iter::repeat;
 use std::ops::{Range, RangeInclusive};
 
-pub fn get_day(day: &str) -> fn(String) {
+pub fn get_day(day: &str) -> fn(&str) {
     match day {
         "1a" => p1a,
         "1b" => p1b,
@@ -59,7 +59,7 @@ pub fn get_day(day: &str) -> fn(String) {
     }
 }
 
-fn p1a(input: String) {
+fn p1a(input: &str) {
     let ans = input.lines().fold(0, |acc, l| {
         let mut iter = l.chars();
         let first = iter.find_map(|x| x.to_digit(10)).unwrap();
@@ -69,7 +69,7 @@ fn p1a(input: String) {
     println!("{ans}");
 }
 
-fn p1b(input: String) {
+fn p1b(input: &str) {
     let map: &[(_, &[u8])] = &[
         (1, b"one"),
         (2, b"two"),
@@ -133,10 +133,10 @@ fn p2parse(
     })
 }
 
-fn p2a(input: String) {
+fn p2a(input: &str) {
     let limits =
         HashMap::<&str, usize, RandomState>::from_iter([("red", 12), ("green", 13), ("blue", 14)]);
-    let ans = p2parse(&input)
+    let ans = p2parse(input)
         .filter_map(|(game_id, rounds)| {
             for round in rounds {
                 for (count, color) in round {
@@ -151,8 +151,8 @@ fn p2a(input: String) {
     println!("{ans}");
 }
 
-fn p2b(input: String) {
-    let ans = p2parse(&input)
+fn p2b(input: &str) {
+    let ans = p2parse(input)
         .map(|(_, rounds)| {
             let (r, g, b) = rounds.fold((0, 0, 0), |mut acc, round| {
                 for (count, color) in round {
@@ -172,8 +172,8 @@ fn p2b(input: String) {
     println!("{ans}");
 }
 
-fn p3a(input: String) {
-    let grid: Vec<&[u8]> = input.lines().map(|x| x.as_bytes()).collect();
+fn p3a(input: &str) {
+    let grid: Vec<&[u8]> = input.lines().map(str::as_bytes).collect();
     let mut num_start = None;
     let mut ans: usize = 0;
     for (y, row) in grid.iter().enumerate() {
@@ -181,7 +181,7 @@ fn p3a(input: String) {
         for (x, c) in row.iter().chain(Some(&b'.')).enumerate() {
             if c.is_ascii_digit() {
                 if num_start.is_none() {
-                    num_start = Some(x)
+                    num_start = Some(x);
                 }
             } else if let Some(start) = num_start {
                 let above_row_iter = { y.checked_sub(1) }
@@ -205,8 +205,8 @@ fn p3a(input: String) {
     println!("{ans}");
 }
 
-fn p3b(input: String) {
-    let grid: Vec<&[u8]> = input.lines().map(|x| x.as_bytes()).collect();
+fn p3b(input: &str) {
+    let grid: Vec<&[u8]> = input.lines().map(str::as_bytes).collect();
     let mut num_start = None;
     // create a list of numbers with their bounding boxes to quickly find intersections
     let mut numbers = Vec::new();
@@ -215,7 +215,7 @@ fn p3b(input: String) {
         for (x, c) in row.iter().chain(Some(&b'.')).enumerate() {
             if c.is_ascii_digit() {
                 if num_start.is_none() {
-                    num_start = Some(x)
+                    num_start = Some(x);
                 }
             } else if let Some(start) = num_start {
                 let number = row[start..x]
@@ -264,11 +264,11 @@ fn p4_matches_iter(input: &str) -> impl Iterator<Item = usize> + '_ {
     })
 }
 
-fn p4a(input: String) {
-    let ans = p4_matches_iter(&input)
+fn p4a(input: &str) {
+    let ans = p4_matches_iter(input)
         .map(|matches| {
             if matches > 0 {
-                2usize.pow((matches - 1) as u32)
+                2usize.pow(u32::try_from(matches - 1).unwrap())
             } else {
                 0
             }
@@ -277,9 +277,9 @@ fn p4a(input: String) {
     println!("{ans}");
 }
 
-fn p4b(input: String) {
+fn p4b(input: &str) {
     let mut upcoming_card_counts = VecDeque::new();
-    let ans = p4_matches_iter(&input)
+    let ans = p4_matches_iter(input)
         .map(|matches| {
             let cards = upcoming_card_counts.pop_front().unwrap_or(1);
             if upcoming_card_counts.len() < matches {
@@ -293,10 +293,10 @@ fn p4b(input: String) {
             cards
         })
         .sum::<u32>();
-    println!("{}", ans);
+    println!("{ans}");
 }
 
-fn p5a(input: String) {
+fn p5a(input: &str) {
     let mut lines = input.lines();
     let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
     let mut seeds = seed_list_slice
@@ -308,7 +308,7 @@ fn p5a(input: String) {
     for line in lines {
         if line.is_empty() {
         } else if line.contains(':') {
-            for seed in seeds.iter_mut() {
+            for seed in &mut seeds {
                 for (range, diff) in &conversions {
                     if range.contains(seed) {
                         *seed += diff;
@@ -327,7 +327,7 @@ fn p5a(input: String) {
     println!("{}", seeds.iter().min().unwrap());
 }
 
-fn p5b(input: String) {
+fn p5b(input: &str) {
     let mut lines = input.lines();
     let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
     let mut iter = seed_list_slice
@@ -375,10 +375,10 @@ fn p5b(input: String) {
         }
     }
 
-    println!("{}", seeds.iter().map(|range| range.start()).min().unwrap());
+    println!("{}", seeds.iter().map(RangeInclusive::start).min().unwrap());
 }
 
-fn p6a(input: String) {
+fn p6a(input: &str) {
     let mut lines = input.lines();
     let [times, distances] = [0; 2].map(|_| {
         let numbers_slice = lines.next().unwrap().split_once(':').unwrap().1;
@@ -395,11 +395,11 @@ fn p6a(input: String) {
     println!("{ans}");
 }
 
-fn p6b(input: String) {
+fn p6b(input: &str) {
     let mut lines = input.lines();
     let [time, distance] = [0; 2].map(|_| {
         { lines.next().unwrap().bytes() }
-            .filter(|b| b.is_ascii_digit())
+            .filter(u8::is_ascii_digit)
             .map(|b| (b - b'0') as usize)
             .fold(0, |acc, n| acc * 10 + n)
     });
@@ -407,7 +407,7 @@ fn p6b(input: String) {
     println!("{}", time - (first_win - 1) * 2 - 1);
 }
 
-fn p7(input: String, j_rule: bool) {
+fn p7(input: &str, j_rule: bool) {
     let mut hands = input
         .lines()
         .map(|l| {
@@ -418,7 +418,7 @@ fn p7(input: String, j_rule: bool) {
                     b'A' => 14,
                     b'K' => 13,
                     b'Q' => 12,
-                    b'J' => 1 + (!j_rule as u8 * 10),
+                    b'J' => 1 + (u8::from(!j_rule) * 10),
                     b'T' => 10,
                     b'0'..=b'9' => b - b'0',
                     _ => panic!("bad char"),
@@ -456,7 +456,7 @@ fn p7(input: String, j_rule: bool) {
         })
         .collect::<Vec<_>>();
 
-    hands.sort();
+    hands.sort_unstable();
 
     let ans = { hands.iter().enumerate() }
         .map(|(i, (_, _, bid))| (i + 1) * bid)
@@ -465,64 +465,64 @@ fn p7(input: String, j_rule: bool) {
     println!("{ans}");
 }
 
-fn p7a(input: String) {
+fn p7a(input: &str) {
     p7(input, false);
 }
 
-fn p7b(input: String) {
+fn p7b(input: &str) {
     p7(input, true);
 }
 
-fn p8a(_input: String) {}
-fn p8b(_input: String) {}
+fn p8a(_input: &str) {}
+fn p8b(_input: &str) {}
 
-fn p9a(_input: String) {}
-fn p9b(_input: String) {}
+fn p9a(_input: &str) {}
+fn p9b(_input: &str) {}
 
-fn p10a(_input: String) {}
-fn p10b(_input: String) {}
+fn p10a(_input: &str) {}
+fn p10b(_input: &str) {}
 
-fn p11a(_input: String) {}
-fn p11b(_input: String) {}
+fn p11a(_input: &str) {}
+fn p11b(_input: &str) {}
 
-fn p12a(_input: String) {}
-fn p12b(_input: String) {}
+fn p12a(_input: &str) {}
+fn p12b(_input: &str) {}
 
-fn p13a(_input: String) {}
-fn p13b(_input: String) {}
+fn p13a(_input: &str) {}
+fn p13b(_input: &str) {}
 
-fn p14a(_input: String) {}
-fn p14b(_input: String) {}
+fn p14a(_input: &str) {}
+fn p14b(_input: &str) {}
 
-fn p15a(_input: String) {}
-fn p15b(_input: String) {}
+fn p15a(_input: &str) {}
+fn p15b(_input: &str) {}
 
-fn p16a(_input: String) {}
-fn p16b(_input: String) {}
+fn p16a(_input: &str) {}
+fn p16b(_input: &str) {}
 
-fn p17a(_input: String) {}
-fn p17b(_input: String) {}
+fn p17a(_input: &str) {}
+fn p17b(_input: &str) {}
 
-fn p18a(_input: String) {}
-fn p18b(_input: String) {}
+fn p18a(_input: &str) {}
+fn p18b(_input: &str) {}
 
-fn p19a(_input: String) {}
-fn p19b(_input: String) {}
+fn p19a(_input: &str) {}
+fn p19b(_input: &str) {}
 
-fn p20a(_input: String) {}
-fn p20b(_input: String) {}
+fn p20a(_input: &str) {}
+fn p20b(_input: &str) {}
 
-fn p21a(_input: String) {}
-fn p21b(_input: String) {}
+fn p21a(_input: &str) {}
+fn p21b(_input: &str) {}
 
-fn p22a(_input: String) {}
-fn p22b(_input: String) {}
+fn p22a(_input: &str) {}
+fn p22b(_input: &str) {}
 
-fn p23a(_input: String) {}
-fn p23b(_input: String) {}
+fn p23a(_input: &str) {}
+fn p23b(_input: &str) {}
 
-fn p24a(_input: String) {}
-fn p24b(_input: String) {}
+fn p24a(_input: &str) {}
+fn p24b(_input: &str) {}
 
-fn p25a(_input: String) {}
-fn p25b(_input: String) {}
+fn p25a(_input: &str) {}
+fn p25b(_input: &str) {}
