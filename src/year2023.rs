@@ -378,8 +378,34 @@ fn p5b(input: String) {
     println!("{}", seeds.iter().map(|range| range.start()).min().unwrap());
 }
 
-fn p6a(_input: String) {}
-fn p6b(_input: String) {}
+fn p6a(input: String) {
+    let mut lines = input.lines();
+    let [times, distances] = [0; 2].map(|_| {
+        let numbers_slice = lines.next().unwrap().split_once(':').unwrap().1;
+        numbers_slice
+            .split(' ')
+            .map(str::trim)
+            .filter(|n| !n.is_empty())
+            .map(|n| n.parse::<usize>().unwrap())
+    });
+    let ans = times
+        .zip(distances)
+        .map(|(time, distance)| (1..time - 1).filter(|t| (time - t) * t > distance).count())
+        .product::<usize>();
+    println!("{ans}");
+}
+
+fn p6b(input: String) {
+    let mut lines = input.lines();
+    let [time, distance] = [0; 2].map(|_| {
+        { lines.next().unwrap().as_bytes().iter() }
+            .filter(|b| b.is_ascii_digit())
+            .map(|b| (b - b'0') as usize)
+            .fold(0, |acc, n| acc * 10 + n)
+    });
+    let first_win = (1..time - 1).find(|t| (time - t) * t > distance).unwrap();
+    println!("{}", time - (first_win - 1) * 2 - 1);
+}
 
 fn p7a(_input: String) {}
 fn p7b(_input: String) {}
