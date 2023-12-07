@@ -61,9 +61,9 @@ pub fn get_day(day: &str) -> fn(&str) {
 
 fn p1a(input: &str) {
     let ans = input.lines().fold(0, |acc, l| {
-        let mut iter = l.chars();
-        let first = iter.find_map(|x| x.to_digit(10)).unwrap();
-        let last = iter.rev().find_map(|x| x.to_digit(10)).unwrap_or(first);
+        let mut iter = l.chars().filter_map(|x| x.to_digit(10));
+        let first = iter.next().unwrap();
+        let last = iter.next_back().unwrap_or(first);
         acc + first * 10 + last
     });
     println!("{ans}");
@@ -83,6 +83,7 @@ fn p1b(input: &str) {
     ];
 
     let ans = input.lines().fold(0usize, |acc, l| {
+        // check to see if the line starts/ends with a number or a word, otherwise shrink the slice and try again.
         let mut slice = l.as_bytes();
         let first = loop {
             if (b'1'..=b'9').contains(&slice[0]) {
@@ -137,15 +138,11 @@ fn p2a(input: &str) {
     let limits =
         HashMap::<&str, usize, RandomState>::from_iter([("red", 12), ("green", 13), ("blue", 14)]);
     let ans = p2parse(input)
+        // Remove any games that exceed the given limits
         .filter_map(|(game_id, rounds)| {
-            for round in rounds {
-                for (count, color) in round {
-                    if *limits.get(color).unwrap() < count {
-                        return None;
-                    }
-                }
-            }
-            Some(game_id)
+            { rounds.flatten() }
+                .all(|(count, color)| count <= *limits.get(color).unwrap())
+                .then_some(game_id)
         })
         .sum::<usize>();
     println!("{ans}");
@@ -154,16 +151,15 @@ fn p2a(input: &str) {
 fn p2b(input: &str) {
     let ans = p2parse(input)
         .map(|(_, rounds)| {
-            let (r, g, b) = rounds.fold((0, 0, 0), |mut acc, round| {
-                for (count, color) in round {
-                    let target = match color {
-                        "red" => &mut acc.0,
-                        "green" => &mut acc.1,
-                        "blue" => &mut acc.2,
-                        _ => unreachable!("hopefully"),
-                    };
-                    *target = count.max(*target);
-                }
+            // Find the minimum of each color required to make every round possible in this game.
+            let (r, g, b) = rounds.flatten().fold((0, 0, 0), |mut acc, (count, color)| {
+                let target = match color {
+                    "red" => &mut acc.0,
+                    "green" => &mut acc.1,
+                    "blue" => &mut acc.2,
+                    _ => unreachable!("hopefully"),
+                };
+                *target = count.max(*target);
                 acc
             });
             r * g * b
@@ -193,6 +189,7 @@ fn p3a(input: &str) {
                     .chain(Some((x, y)))
                     .chain((start.saturating_sub(1)..=x).zip(repeat(y + 1)))
                     .filter_map(|(x, y)| grid.get(y)?.get(x));
+                // Look for symbols around the number to determine if it is a part.
                 if border_iter.any(|&c| !c.is_ascii_digit() && c != b'.') {
                     ans += row[start..x]
                         .iter()
@@ -278,18 +275,19 @@ fn p4a(input: &str) {
 }
 
 fn p4b(input: &str) {
+    // Once a card is processed, its count is no longer needed.
+    // Card counts only need to be stored if they are more than 1.
     let mut upcoming_card_counts = VecDeque::new();
     let ans = p4_matches_iter(input)
         .map(|matches| {
             let cards = upcoming_card_counts.pop_front().unwrap_or(1);
+            for count in upcoming_card_counts.iter_mut().take(matches) {
+                *count += cards;
+            }
             if upcoming_card_counts.len() < matches {
                 let diff = matches - upcoming_card_counts.len();
-                upcoming_card_counts.extend((0..diff).map(|_| 1));
+                upcoming_card_counts.extend((0..diff).map(|_| 1 + cards));
             }
-            upcoming_card_counts
-                .iter_mut()
-                .take(matches)
-                .for_each(|count| *count += cards);
             cards
         })
         .sum::<u32>();
@@ -298,29 +296,38 @@ fn p4b(input: &str) {
 
 fn p5a(input: &str) {
     let mut lines = input.lines();
+
     let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
     let mut seeds = seed_list_slice
         .split(' ')
         .map(|seed| seed.parse::<isize>().unwrap())
         .collect::<Vec<_>>();
-    let mut conversions = Vec::<(Range<isize>, isize)>::new();
 
+    let mut mappings = Vec::<Vec<(Range<isize>, isize)>>::new();
+    mappings.push(Vec::new());
+    let mut last_map = mappings.last_mut().unwrap();
+
+    lines.find(|l| l.contains(':'));
     for line in lines {
         if line.is_empty() {
         } else if line.contains(':') {
-            for seed in &mut seeds {
-                for (range, diff) in &conversions {
-                    if range.contains(seed) {
-                        *seed += diff;
-                        break;
-                    }
-                }
-            }
-            conversions.clear();
+            mappings.push(Vec::new());
+            last_map = mappings.last_mut().unwrap();
         } else {
             let mut iter = line.split(' ');
             let [dest, src, range] = [0; 3].map(|_| iter.next().unwrap().parse().unwrap());
-            conversions.push((src..src + range, dest - src));
+            last_map.push((src..src + range, dest - src));
+        }
+    }
+
+    for seed in &mut seeds {
+        for map in &mappings {
+            for (range, diff) in map {
+                if range.contains(seed) {
+                    *seed += diff;
+                    break;
+                }
+            }
         }
     }
 
@@ -329,6 +336,7 @@ fn p5a(input: &str) {
 
 fn p5b(input: &str) {
     let mut lines = input.lines();
+
     let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
     let mut iter = seed_list_slice
         .split(' ')
@@ -340,39 +348,44 @@ fn p5b(input: &str) {
             seeds.push(start..=start + range - 1);
         }
     }
-    let mut conversions = Vec::<(RangeInclusive<isize>, isize)>::new();
 
+    let mut mappings = Vec::<Vec<(RangeInclusive<isize>, isize)>>::new();
+    mappings.push(Vec::new());
+    let mut last_map = mappings.last_mut().unwrap();
+    lines.find(|l| l.contains(':'));
     for line in lines {
         if line.is_empty() {
         } else if line.contains(':') {
-            while let Some(mut seed) = seeds.pop() {
-                for (range, diff) in &conversions {
-                    if range.start() < seed.end() && seed.start() < range.end() {
-                        if seed.start() < range.start() {
-                            seeds.push(*seed.start()..=*range.start() - 1);
-                            seed = *range.start()..=*seed.end();
-                        }
-                        if range.end() < seed.end() {
-                            seeds.push(*range.end() + 1..=*seed.end());
-                            seed = *seed.start()..=*range.end();
-                        }
-                        seed = seed.start() + diff..=seed.end() + diff;
-                        break;
-                    }
-                }
-                new_seeds.push(seed);
-            }
-
-            println!("{new_seeds:?}");
-            std::mem::swap(&mut seeds, &mut new_seeds);
-            conversions.clear();
+            mappings.push(Vec::new());
+            last_map = mappings.last_mut().unwrap();
         } else {
             let mut iter = line.split(' ');
             let [dest, src, range] = [0; 3].map(|_| iter.next().unwrap().parse().unwrap());
-            if range > 0 {
-                conversions.push((src..=src + range - 1, dest - src));
-            }
+            last_map.push((src..=src + range - 1, dest - src));
         }
+    }
+
+    for map in &mappings {
+        while let Some(mut seed) = seeds.pop() {
+            for (src, diff) in map {
+                // Some part of the seed range overlaps with the src range.
+                if src.start() <= seed.end() && seed.start() <= src.end() {
+                    // Break off the ends that aren't covered by src to be processed separately.
+                    if seed.start() < src.start() {
+                        seeds.push(*seed.start()..=*src.start() - 1);
+                        seed = *src.start()..=*seed.end();
+                    }
+                    if src.end() < seed.end() {
+                        seeds.push(*src.end() + 1..=*seed.end());
+                        seed = *seed.start()..=*src.end();
+                    }
+                    seed = seed.start() + diff..=seed.end() + diff;
+                    break;
+                }
+            }
+            new_seeds.push(seed);
+        }
+        std::mem::swap(&mut seeds, &mut new_seeds);
     }
 
     println!("{}", seeds.iter().map(RangeInclusive::start).min().unwrap());
