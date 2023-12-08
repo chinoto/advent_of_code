@@ -486,8 +486,117 @@ fn p7b(input: &str) {
     p7(input, true);
 }
 
-fn p8a(_input: &str) {}
-fn p8b(_input: &str) {}
+fn p8parse(input: &str) -> (Vec<usize>, Vec<(&str, [usize; 2])>) {
+    let mut lines = input.lines();
+
+    let directions: Vec<usize> = { lines.next().unwrap().chars() }
+        .map(|c| match c {
+            'L' => 0,
+            'R' => 1,
+            _ => unreachable!(),
+        })
+        .collect();
+
+    lines.next();
+
+    // I initially used a HashMap.
+    let nodes: Vec<(&str, [&str; 2])> = lines
+        .map(|l| {
+            let (node, branches) = l.split_once('=').unwrap();
+            let (left, right) = branches.split_once(',').unwrap();
+            let [node, left, right] =
+                [node, left, right].map(|s| s.trim_matches(|c: char| !c.is_ascii_uppercase()));
+
+            (node, [left, right])
+        })
+        .collect();
+
+    // But then I decided to use a Vec and replace branch names with indexes to speed up processing.
+    // It turned out that failing to find the end node during the first part after millions,
+    // then billions after optimization, of steps was due to not reading the instructions.
+    // I somehow thought the start and goal nodes were the first and last nodes given, rather than hardcoded to "AAA"/"ZZZ".
+    let nodes: Vec<(&str, [usize; 2])> = { nodes.iter() }
+        .map(|(node, branches)| {
+            (
+                *node,
+                branches.map(|branch| nodes.iter().position(|(node, _)| branch == *node).unwrap()),
+            )
+        })
+        .collect();
+
+    (directions, nodes)
+}
+
+fn p8a(input: &str) {
+    let (directions, nodes) = p8parse(input);
+
+    let mut current_node = { nodes.iter() }
+        .position(|(node, _)| (*node == "AAA"))
+        .unwrap();
+
+    let mut steps: usize = 0;
+    for &dir in directions.iter().cycle() {
+        current_node = nodes[current_node].1[dir];
+        steps += 1;
+        if nodes[current_node].0 == "ZZZ" {
+            break;
+        }
+    }
+
+    println!("{steps}");
+}
+
+// I got impatient, looked up this puzzle, and skimmed this reddit thread mentioning cycles and LCM.
+// After looking up LCM, I realized it was being used over every routes' steps to see when they would align.
+// https://www.reddit.com/r/adventofcode/comments/18df7px/2023_day_8_solutions/
+fn p8b(input: &str) {
+    let (directions, nodes) = p8parse(input);
+
+    let current_nodes = { nodes.iter().enumerate() }
+        .filter_map(|(i, (node, _))| (node.as_bytes()[2] == b'A').then_some(i))
+        .collect::<Vec<usize>>();
+
+    // Collect the maximum factor counts of every routes' steps in max_factors to produce their LCM (Least Common Multiple).
+    // Apparently there are tidier ways of computing the LCM...
+    let mut max_factors = HashMap::<usize, usize>::new();
+
+    for &(mut current_node) in &current_nodes {
+        let mut steps: usize = 0;
+        for &dir in directions.iter().cycle() {
+            current_node = nodes[current_node].1[dir];
+            steps += 1;
+            if nodes[current_node].0.as_bytes()[2] == b'Z' {
+                break;
+            }
+        }
+
+        // Count the factors of `steps` and set the maximums in max_factors.
+        for factor in 2.. {
+            let mut count = 0;
+            loop {
+                let (quot, rem) = (steps / factor, steps % factor);
+                if rem != 0 {
+                    break;
+                }
+                count += 1;
+                steps = quot;
+            }
+            if count > 0 {
+                let target = max_factors.entry(factor).or_default();
+                *target = count.max(*target);
+            }
+            if steps == 1 {
+                break;
+            }
+        }
+    }
+
+    let ans = { max_factors.iter() }
+        .map(|(factor, &count)| factor.pow(u32::try_from(count).unwrap()))
+        .product::<usize>();
+
+    println!("{ans}");
+}
 
 fn p9a(_input: &str) {}
 fn p9b(_input: &str) {}
