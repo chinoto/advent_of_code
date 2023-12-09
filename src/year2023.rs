@@ -1,4 +1,4 @@
-use std::collections::{hash_map::RandomState, HashMap};
+use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
 use std::iter::repeat;
 use std::ops::{Range, RangeInclusive};
@@ -70,7 +70,7 @@ fn p1a(input: &str) {
 }
 
 fn p1b(input: &str) {
-    let map: &[(_, &[u8])] = &[
+    let map: &[(u8, &[u8])] = &[
         (1, b"one"),
         (2, b"two"),
         (3, b"three"),
@@ -123,7 +123,7 @@ fn p2parse(
     input.lines().map(|l| {
         let (game, rounds) = l.split_once(':').unwrap();
         (
-            game.split_once(' ').unwrap().1.parse::<usize>().unwrap(),
+            game.split_once(' ').unwrap().1.parse().unwrap(),
             rounds.split(';').map(|round| {
                 round.split(',').map(|count_color| {
                     let (count, color) = count_color.trim().split_once(' ').unwrap();
@@ -135,21 +135,21 @@ fn p2parse(
 }
 
 fn p2a(input: &str) {
-    let limits =
-        HashMap::<&str, usize, RandomState>::from_iter([("red", 12), ("green", 13), ("blue", 14)]);
-    let ans = p2parse(input)
+    let mut limits = HashMap::new();
+    limits.extend([("red", 12), ("green", 13), ("blue", 14)]);
+    let ans: usize = p2parse(input)
         // Remove any games that exceed the given limits
         .filter_map(|(game_id, rounds)| {
             { rounds.flatten() }
                 .all(|(count, color)| count <= *limits.get(color).unwrap())
                 .then_some(game_id)
         })
-        .sum::<usize>();
+        .sum();
     println!("{ans}");
 }
 
 fn p2b(input: &str) {
-    let ans = p2parse(input)
+    let ans: usize = p2parse(input)
         .map(|(_, rounds)| {
             // Find the minimum of each color required to make every round possible in this game.
             let (r, g, b) = rounds.flatten().fold((0, 0, 0), |mut acc, (count, color)| {
@@ -164,7 +164,7 @@ fn p2b(input: &str) {
             });
             r * g * b
         })
-        .sum::<usize>();
+        .sum();
     println!("{ans}");
 }
 
@@ -262,7 +262,7 @@ fn p4_matches_iter(input: &str) -> impl Iterator<Item = usize> + '_ {
 }
 
 fn p4a(input: &str) {
-    let ans = p4_matches_iter(input)
+    let ans: usize = p4_matches_iter(input)
         .map(|matches| {
             if matches > 0 {
                 2usize.pow(u32::try_from(matches - 1).unwrap())
@@ -270,7 +270,7 @@ fn p4a(input: &str) {
                 0
             }
         })
-        .sum::<usize>();
+        .sum();
     println!("{ans}");
 }
 
@@ -278,7 +278,7 @@ fn p4b(input: &str) {
     // Once a card is processed, its count is no longer needed.
     // Card counts only need to be stored if they are more than 1.
     let mut upcoming_card_counts = VecDeque::new();
-    let ans = p4_matches_iter(input)
+    let ans: u32 = p4_matches_iter(input)
         .map(|matches| {
             let cards = upcoming_card_counts.pop_front().unwrap_or(1);
             for count in upcoming_card_counts.iter_mut().take(matches) {
@@ -290,7 +290,7 @@ fn p4b(input: &str) {
             }
             cards
         })
-        .sum::<u32>();
+        .sum();
     println!("{ans}");
 }
 
@@ -298,12 +298,12 @@ fn p5a(input: &str) {
     let mut lines = input.lines();
 
     let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
-    let mut seeds = seed_list_slice
+    let mut seeds: Vec<isize> = seed_list_slice
         .split(' ')
-        .map(|seed| seed.parse::<isize>().unwrap())
-        .collect::<Vec<_>>();
+        .map(|seed| seed.parse().unwrap())
+        .collect();
 
-    let mut mappings = Vec::<Vec<(Range<isize>, isize)>>::new();
+    let mut mappings: Vec<Vec<(Range<isize>, isize)>> = Vec::new();
     mappings.push(Vec::new());
     let mut last_map = mappings.last_mut().unwrap();
 
@@ -338,9 +338,7 @@ fn p5b(input: &str) {
     let mut lines = input.lines();
 
     let seed_list_slice = lines.next().unwrap().split_once(": ").unwrap().1;
-    let mut iter = seed_list_slice
-        .split(' ')
-        .map(|seed| seed.parse::<isize>().unwrap());
+    let mut iter = seed_list_slice.split(' ').map(|seed| seed.parse().unwrap());
     let mut seeds = Vec::new();
     let mut new_seeds = Vec::new();
     while let (Some(start), Some(range)) = (iter.next(), iter.next()) {
@@ -349,7 +347,7 @@ fn p5b(input: &str) {
         }
     }
 
-    let mut mappings = Vec::<Vec<(RangeInclusive<isize>, isize)>>::new();
+    let mut mappings: Vec<Vec<(RangeInclusive<isize>, isize)>> = Vec::new();
     mappings.push(Vec::new());
     let mut last_map = mappings.last_mut().unwrap();
     lines.find(|l| l.contains(':'));
@@ -401,10 +399,10 @@ fn p6a(input: &str) {
             .filter(|n| !n.is_empty())
             .map(|n| n.parse::<usize>().unwrap())
     });
-    let ans = times
+    let ans: usize = times
         .zip(distances)
         .map(|(time, distance)| (1..time - 1).filter(|t| (time - t) * t > distance).count())
-        .product::<usize>();
+        .product();
     println!("{ans}");
 }
 
@@ -421,12 +419,12 @@ fn p6b(input: &str) {
 }
 
 fn p7(input: &str, j_rule: bool) {
-    let mut hands = input
+    let mut hands: Vec<(u8, &str, usize)> = input
         .lines()
         .map(|l| {
             let (hand, bid) = l.split_once(' ').unwrap();
 
-            let hand_values = { hand.bytes() }
+            let hand_values: Vec<u8> = { hand.bytes() }
                 .map(|b| match b {
                     b'A' => 14,
                     b'K' => 13,
@@ -436,10 +434,10 @@ fn p7(input: &str, j_rule: bool) {
                     b'0'..=b'9' => b - b'0',
                     _ => panic!("bad char"),
                 })
-                .collect::<Vec<_>>();
+                .collect();
 
-            let mut kinds =
-                { hand_values.iter() }.fold(HashMap::<u8, usize>::new(), |mut acc, &value| {
+            let mut kinds: HashMap<u8, usize> =
+                { hand_values.iter() }.fold(HashMap::new(), |mut acc, &value| {
                     *acc.entry(value).or_default() += 1;
                     acc
                 });
@@ -451,7 +449,7 @@ fn p7(input: &str, j_rule: bool) {
                 }
             }
 
-            let mut kinds = kinds.into_values().collect::<Vec<_>>();
+            let mut kinds: Vec<usize> = kinds.into_values().collect();
             kinds.sort_unstable();
             kinds.reverse();
             let typ = match kinds.as_slice() {
@@ -467,13 +465,13 @@ fn p7(input: &str, j_rule: bool) {
 
             (typ, hand, bid.parse().unwrap())
         })
-        .collect::<Vec<_>>();
+        .collect();
 
     hands.sort_unstable();
 
-    let ans = { hands.iter().enumerate() }
+    let ans: usize = { hands.iter().enumerate() }
         .map(|(i, (_, _, bid))| (i + 1) * bid)
-        .sum::<usize>();
+        .sum();
 
     println!("{ans}");
 }
@@ -552,13 +550,13 @@ fn p8a(input: &str) {
 fn p8b(input: &str) {
     let (directions, nodes) = p8parse(input);
 
-    let current_nodes = { nodes.iter().enumerate() }
+    let current_nodes: Vec<usize> = { nodes.iter().enumerate() }
         .filter_map(|(i, (node, _))| (node.as_bytes()[2] == b'A').then_some(i))
-        .collect::<Vec<usize>>();
+        .collect();
 
     // Collect the maximum factor counts of every routes' steps in max_factors to produce their LCM (Least Common Multiple).
     // Apparently there are tidier ways of computing the LCM...
-    let mut max_factors = HashMap::<usize, usize>::new();
+    let mut max_factors: HashMap<usize, usize> = HashMap::new();
 
     for &(mut current_node) in &current_nodes {
         let mut steps: usize = 0;
@@ -591,9 +589,9 @@ fn p8b(input: &str) {
         }
     }
 
-    let ans = { max_factors.iter() }
+    let ans: usize = { max_factors.iter() }
         .map(|(factor, &count)| factor.pow(u32::try_from(count).unwrap()))
-        .product::<usize>();
+        .product();
 
     println!("{ans}");
 }
