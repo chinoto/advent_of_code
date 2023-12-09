@@ -598,8 +598,35 @@ fn p8b(input: &str) {
     println!("{ans}");
 }
 
-fn p9a(_input: &str) {}
-fn p9b(_input: &str) {}
+fn p9_predict_next(input: &[i32]) -> i32 {
+    if input.iter().all(|&x| x == 0) {
+        return 0;
+    }
+    let diffs: Vec<i32> = input.windows(2).map(|w| w[1] - w[0]).collect();
+    input.last().unwrap() + p9_predict_next(&diffs)
+}
+
+fn p9(input: &str, reverse: bool) {
+    let mut histories: Vec<Vec<i32>> = { input.lines() }
+        .map(|l| l.split(' ').map(|s| s.parse().unwrap()).collect())
+        .collect();
+
+    if reverse {
+        histories.iter_mut().for_each(|h| h.reverse());
+    }
+
+    let ans: i32 = { histories.iter() }
+        .map(|history| p9_predict_next(history))
+        .sum();
+    println!("{ans:?}");
+}
+
+fn p9a(input: &str) {
+    p9(input, false);
+}
+fn p9b(input: &str) {
+    p9(input, true);
+}
 
 fn p10a(_input: &str) {}
 fn p10b(_input: &str) {}
