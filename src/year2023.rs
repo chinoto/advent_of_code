@@ -626,8 +626,138 @@ fn p9b(input: &str) {
     p9(input, true);
 }
 
-fn p10a(_input: &str) {}
-fn p10b(_input: &str) {}
+fn p10_shared(input: &str, cleanup: bool) -> (Vec<Vec<u8>>, usize) {
+    let mut grid: Vec<Vec<u8>> = input.lines().map(|l| l.as_bytes().to_vec()).collect();
+
+    let start = { grid.iter().enumerate() }
+        .find_map(|(y, row)| row.iter().position(|&tile| tile == b'S').map(|x| (x, y)))
+        .unwrap();
+
+    let pipes: HashMap<(usize, usize), [(usize, usize); 2]> = { grid.iter().enumerate() }
+        .flat_map(|(y, row)| {
+            row.iter().enumerate().filter_map(move |(x, &tile)| {
+                Some((
+                    (x, y),
+                    match tile {
+                        b'J' => [(x, y.checked_sub(1)?), (x.checked_sub(1)?, y)],
+                        b'L' => [(x, y.checked_sub(1)?), (x + 1, y)],
+                        b'|' => [(x, y.checked_sub(1)?), (x, y + 1)],
+                        b'-' => [(x.checked_sub(1)?, y), (x + 1, y)],
+                        b'7' => [(x.checked_sub(1)?, y), (x, y + 1)],
+                        b'F' => [(x + 1, y), (x, y + 1)],
+                        // S, .
+                        _ => return None,
+                    },
+                ))
+            })
+        })
+        .collect();
+
+    let mut prev = start;
+    let mut current = { pipes.iter() }
+        .find_map(|(node, branches)| {
+            branches
+                .iter()
+                .any(|&branch| branch == start)
+                .then_some(*node)
+        })
+        .unwrap();
+
+    let mut pipe_loop = vec![current];
+    while current != start {
+        prev = *pipes[&current]
+            .iter()
+            .find(|&&branch| branch != prev)
+            .unwrap();
+        std::mem::swap(&mut prev, &mut current);
+        pipe_loop.push(current);
+    }
+
+    // cleanup the grid so only the loop remains and replace S with the correct pipe.
+    if cleanup {
+        for (y, row) in grid.iter_mut().enumerate() {
+            for (x, tile) in row.iter_mut().enumerate() {
+                if !pipe_loop.contains(&(x, y)) {
+                    *tile = b'.';
+                }
+            }
+        }
+        // pipes.retain(|k, _| pipe_loop.contains(k));
+        let mut iter = { pipes.iter() }
+            .filter(|(node, _)| pipe_loop.contains(node))
+            .filter_map(|(node, branches)| branches.contains(&start).then_some(*node));
+        let mut start_branches = [0; 2].map(|_| {
+            let branch = iter.next().unwrap();
+            (branch.0 + 1 - start.0, branch.1 + 1 - start.1)
+        });
+
+        start_branches.sort_unstable();
+
+        grid[start.1][start.0] = match start_branches {
+            [(0, 1), (1, 0)] => b'J',
+            [(0, 1), (1, 2)] => b'7',
+            [(0, 1), (2, 1)] => b'-',
+            [(1, 0), (1, 2)] => b'|',
+            [(1, 0), (2, 1)] => b'L',
+            [(1, 2), (2, 1)] => b'F',
+            _ => unreachable!(),
+        };
+    }
+
+    (grid, pipe_loop.len())
+}
+
+fn p10a(input: &str) {
+    let (_grid, pipes) = p10_shared(input, false);
+
+    println!("{}", pipes / 2);
+}
+
+fn p10b(input: &str) {
+    let (mut grid, _) = p10_shared(input, true);
+
+    // Use the "Ray casting algorithm" to determine if "Point in Polygon".
+    // https://en.wikipedia.org/wiki/Point_in_polygon#Ray_casting_algorithm
+    let mut nests = 0;
+    let mut inside = false;
+    // Whether a horizontal pipe started from the top or bottom,
+    // which can then be used to determine if we've crossed the edge of the
+    // polygon or we're still on the same side as before.
+    let mut from_up = false;
+    for row in &mut grid {
+        for tile in row {
+            match tile {
+                b'|' => {
+                    inside = !inside;
+                }
+                b'F' => from_up = false,
+                b'L' => from_up = true,
+                b'7' => {
+                    if from_up {
+                        inside = !inside;
+                    }
+                }
+                b'J' => {
+                    if !from_up {
+                        inside = !inside;
+                    }
+                }
+                b'-' => (),
+                b'.' => {
+                    if inside {
+                        nests += 1;
+                        *tile = b'I';
+                    }
+                }
+                _ => unreachable!(),
+            }
+            print!("{}", *tile as char);
+        }
+        println!();
+    }
+
+    println!("{nests}");
+}
 
 fn p11a(_input: &str) {}
 fn p11b(_input: &str) {}
