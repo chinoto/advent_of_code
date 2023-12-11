@@ -759,8 +759,43 @@ fn p10b(input: &str) {
     println!("{nests}");
 }
 
-fn p11a(_input: &str) {}
-fn p11b(_input: &str) {}
+fn p11_shared(input: &str, part2: bool) -> usize {
+    let mut galaxies: Vec<[usize; 2]> = input
+        .lines()
+        .enumerate()
+        .flat_map(|(y, l)| {
+            l.bytes()
+                .enumerate()
+                .filter_map(move |(x, tile)| (tile == b'#').then_some([x, y]))
+        })
+        .collect();
+    let [width, height] = galaxies
+        .iter()
+        .fold([0, 0], |[mx, my], &[x, y]| [mx.max(x), my.max(y)]);
+    for (length, axis) in [(width, 0), (height, 1)] {
+        for i in (0..length).rev() {
+            if galaxies.iter().all(|coord| i != coord[axis]) {
+                galaxies
+                    .iter_mut()
+                    .filter(|coord| coord[axis] > i)
+                    .for_each(|coord| coord[axis] += if part2 { 1_000_000 - 1 } else { 1 });
+            }
+        }
+    }
+    { galaxies.iter().enumerate() }
+        .flat_map(|(i, [x1, y1])| {
+            { galaxies.iter().skip(i + 1) }.map(|&[x2, y2]| x1.abs_diff(x2) + y1.abs_diff(y2))
+        })
+        .sum()
+}
+
+fn p11a(input: &str) {
+    println!("{}", p11_shared(input, false));
+}
+
+fn p11b(input: &str) {
+    println!("{}", p11_shared(input, true));
+}
 
 fn p12a(_input: &str) {}
 fn p12b(_input: &str) {}
