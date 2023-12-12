@@ -797,8 +797,76 @@ fn p11b(input: &str) {
     println!("{}", p11_shared(input, true));
 }
 
-fn p12a(_input: &str) {}
-fn p12b(_input: &str) {}
+// Too slow during part 2 to get past line 115 (of 1000) in a reasonable amount of time.
+fn p12_recurse(tiles: &[u8], segments: &[usize]) -> usize {
+    let mut count = 0;
+    let length = segments[0];
+    for (i, &tile) in tiles.iter().enumerate() {
+        if let Some(start_tiles) = tiles.get(i..i + length) {
+            if start_tiles.iter().all(|&tile| tile != b'.') && tiles.get(i + length) != Some(&b'#')
+            {
+                count += if segments.len() > 1 {
+                    if tiles.len() <= i + length + 1 {
+                        break;
+                    }
+                    p12_recurse(&tiles[i + length + 1..], &segments[1..])
+                } else {
+                    let remaining_tiles = tiles.get(i + length + 1..).unwrap_or_default();
+                    let no_springs_in_remainder = remaining_tiles.iter().all(|&tile| tile != b'#');
+                    usize::from(no_springs_in_remainder)
+                }
+            }
+        }
+        if tile == b'#' {
+            break;
+        }
+    }
+    count
+}
+
+fn p12(input: &str, part2: bool) {
+    let lines: Vec<(String, Vec<usize>)> = { input.lines() }
+        .map(|l| {
+            let (row, sections) = l.split_once(' ').unwrap();
+
+            let mut new_row = row.to_string();
+            for _ in 0..if part2 { 4 } else { 0 } {
+                new_row.push('?');
+                new_row.push_str(row);
+            }
+
+            let mut sections = sections
+                .split(',')
+                .map(|n| n.parse().unwrap())
+                .collect::<Vec<usize>>();
+            let sections_len = sections.len();
+            for _ in 0..if part2 { 4 } else { 0 } {
+                sections.extend_from_within(0..sections_len);
+            }
+
+            (new_row, sections)
+        })
+        .collect();
+    println!("{lines:?}");
+
+    let sum: usize = lines
+        .iter()
+        .map(|(tiles, segments)| {
+            let count = p12_recurse(tiles.as_bytes(), segments);
+            println!("{count}");
+            count
+        })
+        .sum();
+
+    println!("{sum}");
+}
+
+fn p12a(input: &str) {
+    p12(input, false);
+}
+fn p12b(input: &str) {
+    p12(input, true);
+}
 
 fn p13a(_input: &str) {}
 fn p13b(_input: &str) {}
